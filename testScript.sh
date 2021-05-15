@@ -1,7 +1,14 @@
 TIMEOUT=$1
-DATA="data/test5/*.wcnf"
+DATA="data/test_06_05/*.wcnf"
+
 for f in $DATA;
 do
-	echo "Processing $f...";
-	timeout $1 ./main $f
+  echo "----------------------------------"
+  echo "Processing $f"
+  for i in {1..10}
+  do
+    echo "[Iter $i/10]";
+    #timeout "$TIMEOUT" ./main "$f" "$i"
+    ./main "$f" "$i"
+  done
 done

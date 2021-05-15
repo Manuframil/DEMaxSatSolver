@@ -4,75 +4,55 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-db = {
-	'ram_k4_n18.ra1': (3064081, 532),
-	'ram_k4_n19.ra1': (3883075, 1260),
-	'ram_k4_n20.ra1': (4844949, 1988),
-	'scpcyc10_maxsat': (16640, 2716),
-	'scpcyc11_maxsat': (39424, 3444),
-	'scpclr13_maxsat': (4810, 248),
+solutionfile = "data/mse20-incomplete-unweighted-best.csv"
 
-}
+
+def getBestSol(filename):
+    key = filename + '.gz'
+    with open(solutionfile) as csvfile:
+        rows = csv.reader(csvfile, delimiter=',')
+        for row in rows:
+            if row[0] == key:
+                return row[1]
+    return -1
+
 
 def main(argv):
+    endings = ['_CR0.50_F0.50_LSS0.01_WS0.50', '_CR0.50_F0.50_LSS0.01_WS0.00', '_CR0.50_F0.50_LSS0.01_WS1.00',
+               '_CR0.50_F0.50_LSS0.00_WS0.50']
+    labels = ['DE+GWSat', 'DE+GSat', 'DE+WalkSat', 'DE Raw']
+    colors = ['aquamarine', 'salmon', 'gold', 'lime']
 
-	files = ['', '']
+    txt_path = argv[0][:-5]
 
+    bestsol = getBestSol(argv[0])
 
-	x1, y1, t1 = [],[],[]
-	x2, y2, t2 = [],[],[]
-	x3, y3, t3 = [],[],[]
+    wcnf_file = txt_path.split('/')[-1]
 
-	path = argv[0][:-5]
+    plt.figure(figsize=(10, 8))
 
-	with open(path+'-GWSAT.txt') as csvfile:
-		plots = csv.reader(csvfile, delimiter=',')
-		for row in plots:
-			x1.append(float(row[0]))
-			y1.append(float(row[1]))
-			t1.append(float(row[2]))
-	
-	with open(path+'-H-CR0.5-F0.5.txt') as csvfile:
-		plots = csv.reader(csvfile, delimiter=',')
-		for row in plots:
-			x2.append(float(row[0]))
-			y2.append(float(row[1]))
-			t2.append(float(row[2]))
+    plt.axhline(bestsol, linestyle="solid", color='red', label="Best sol found")
 
-	with open(path+'-H-CR0.9-F0.9.txt') as csvfile:
-		plots = csv.reader(csvfile, delimiter=',')
-		for row in plots:
-			x3.append(float(row[0]))
-			y3.append(float(row[1]))
-			t3.append(float(row[2]))
+    for end, label, color in zip(endings, labels, colors):
+        data = np.zeros((250, 4), dtype=float)
+        count = 0
+        for filename in sorted(os.listdir(txt_path + end)):
+            fname = os.path.join(txt_path + end, filename)
+            tmpdata = np.loadtxt(fname=fname, delimiter=',', dtype=float)
+            data += tmpdata
+            count += 1
 
+        data /= count
+        tt = np.arange(0, len(data[:, 0]))
+        plt.plot(tt, data[:, 0], "o-", color=color, label=f"Best {label}", markersize=2)
+        plt.plot(tt, data[:, 1], "-", color=color, alpha=0.25, markersize=1)
+        plt.plot(tt, data[:, 2], "-", color=color, label=f"Mean {label}", markersize=1)
 
-	tt = np.arange(0, len(x1))
+    plt.grid(True)
+    plt.legend(loc='upper right')
 
-	################################
-	# Grafica SCORE - GENERACIONES #
-	################################
-	plt.figure(figsize=(10,8))
+    plt.savefig(f'imgs/compare_{wcnf_file}.png')
 
-	cost, sol = db[path]
-
-	plt.axhline(cost-sol, linestyle="solid", color='red', label="Solver")
-
-	plt.plot(tt, x1, "o-",color="aquamarine",  label="Best GWSAT", markersize=2)
-	plt.plot(tt, y1, "-",color="aquamarine", label="Mean GWSAT", markersize=2)
-
-	plt.plot(tt, x2, "o-",color="salmon",  label="Best H-CR0.5-F0.5", markersize=2)
-	plt.plot(tt, y2, "-",color="salmon", label="Mean -H-CR0.5-F0.5", markersize=2)
-
-	plt.plot(tt3, x3, "o-",color="gold",  label="Best H-CR0.9-F0.9", markersize=2)
-	plt.plot(tt3, y3, "-",color="gold", label="Mean H-CR0.9-F0.9", markersize=2)
-	
-	plt.grid(True)
-	plt.legend(loc='lower right')
-
-	plt.savefig('compare_GENS_'+argv[0] + '.png')
-
-	#plt.show()
 
 if __name__ == "__main__":
     main(sys.argv[1:])

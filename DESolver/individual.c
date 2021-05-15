@@ -27,21 +27,21 @@ static Individual *new_individual(int assigment_size,
     Individual *ind = malloc(sizeof(Individual));
 
     ind->assigment_size = assigment_size;
-    ind->assigment = calloc(ceil(assigment_size/32)+1, sizeof(int));
-    memset(ind->assigment, 0, ceil(assigment_size/32)+1);
+    ind->assigment = calloc(ceil(assigment_size/BitsInt)+1, sizeof(int));
+    memset(ind->assigment, 0, ceil(assigment_size/BitsInt)+1);
 
     ind->clValues_size = clValues_size;
-    ind->clValues = calloc(ceil(clValues_size/32)+1, sizeof(int));
-    memset(ind->clValues, 0,ceil(clValues_size/32)+1);
+    ind->clValues = calloc(ceil(clValues_size/BitsInt)+1, sizeof(int));
+    memset(ind->clValues, 0,ceil(clValues_size/BitsInt)+1);
 
     ind->supports_size = supports_size;
     ind->supports = calloc(supports_size, sizeof(int));
-    memset(ind->supports, 0,ceil(supports_size/32)+1);
+    memset(ind->supports, 0,ceil(supports_size/BitsInt)+1);
 
     ind->unsatCl_size = unsatCl_size;
     ind->unsatCl_pos = 0;
     ind->unsatCl = calloc(unsatCl_size, sizeof(int));
-    memset(ind->unsatCl, 0,ceil(unsatCl_size/32)+1);
+    memset(ind->unsatCl, 0,ceil(unsatCl_size/BitsInt)+1);
 
 
     return ind;
@@ -76,8 +76,8 @@ static void deep_copy_ind(Individual **or, Individual **dest){
     (*dest)->score = (*or)->score;
     (*dest)->solution = (*or)->solution;
 
-    for (int i=0; i < (*or)->assigment_size ; i++) {
-        AssignBit((*dest)->assigment, i, GetBit((*or)->assigment, i));
+    for (int i=0; i < (ceil((*or)->assigment_size/BitsInt)+1); i++){
+        (*dest)->assigment[i] = (*or)->assigment[i];
     }
 
     for (int i = 0; i < (*or)->clValues_size; i++){

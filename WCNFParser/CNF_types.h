@@ -8,7 +8,7 @@ static const int LiteralMax = INT_MAX;
 typedef struct Clause {
     size_t size;
     size_t capacity;
-	  int weigth;
+    size_t weigth;
     Literal literals[1];
 } Clause;
 

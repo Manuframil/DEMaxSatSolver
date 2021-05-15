@@ -17,7 +17,7 @@
 
 
 
-const char *output_format = "%s_CR%.2f_F%.2f_LSS%.2f_WS%.2f.txt";
+const char *output_format = "%s_HS_%s_CR%.2f_F%.2f_LSS%.2f_WS%.2f";
 
 
 int is_regular_file(const char *path){
@@ -27,7 +27,7 @@ int is_regular_file(const char *path){
 }
 
 void print_description(CNF *cnf, int gen_max, int NP, float CR, float F, 
-    int reps, float LSS, float WS, int maxLSS, int SEED){
+    int reps, float LSS, float WS, int maxLSS, int SEED, const char* hscope){
     
     printf("c -------------------------------------------\n");
     printf("c BINARY DIFFERENTIAL EVOLUTION MAXSAT SOLVER\n");
@@ -43,19 +43,12 @@ void print_description(CNF *cnf, int gen_max, int NP, float CR, float F,
     printf("c Clauses       = %ld \n", cnf->clause_count);
     printf("c Literals      = %ld \n", cnf->variable_count);
     printf("c Total cost    = %ld \n", cnf->max_cost);
+    printf("c h - scope     = %s \n", hscope);
     printf("c -------------------------------------------\n");
     printf("\n");
 
 }
 
-/*
-void build_output_name(char* outfile, char* filename, float CR, float F, float LSS, float WS){
-
-    strcat(filename, "_CR%f_F%f_LSS%f_WS%f.txt");
-    snprintf(outfile, sizeof(outfile), filename, CR, F, LSS, WS);
-
-}
-*/
 
 int main(int argc,char const *argv[]){
 
@@ -77,6 +70,8 @@ int main(int argc,char const *argv[]){
     int SEED = atoi(getval("SEED", co));
 
     float WS = atof(getval("WS", co));
+
+    const char* hscope = getval("H-SCOPE", co);
 
     if (argv[1] == NULL){
         printf("Error: No wcnf file was given!\n");
@@ -100,19 +95,25 @@ int main(int argc,char const *argv[]){
 
         cnf = read_file(input);
 
-
         char outpath[128];
         char filename[64];
         strcpy(filename, path);
         filename[strlen(filename)-5] = 0;
-        snprintf(outpath, 128, output_format, filename, CR, F, LSS, WS);       
+        snprintf(outpath, 128, output_format, filename, hscope, CR, F, LSS, WS);
+
+        struct stat st = {0};
+
+        if (stat(outpath, &st) == -1) {
+            mkdir(outpath, 0700);
+        }
+        strcat(outpath, "/");
+        strcat(outpath, argv[2]);
+        strcat(outpath, ".txt");
+
+        //print_description(cnf, gen_max, NP, CR, F, rep, LSS, WS, maxLSS, SEED, hscope);
 
 
-
-        print_description(cnf, gen_max, NP, CR, F, rep, LSS, WS, maxLSS, SEED);
-
-
-        differential_evolution(cnf, gen_max, NP, CR, F, rep, LSS, WS, maxLSS,SEED, outpath);
+        differential_evolution(cnf, gen_max, NP, CR, F, rep, LSS, WS, maxLSS,SEED, hscope, outpath);
 
         fclose(input);
         free_CNF(cnf);
@@ -156,7 +157,7 @@ int main(int argc,char const *argv[]){
             }
 
             filename[strlen(filename)-5] = 0;
-            snprintf(outpath, 128, output_format, filename, CR, F, LSS, WS);   
+            snprintf(outpath, 128, output_format, filename, hscope, CR, F, LSS, WS);
 
 
             printf("----------------------------------------------------\n");
@@ -164,7 +165,7 @@ int main(int argc,char const *argv[]){
 
             cnf = read_file(input);       
     
-            differential_evolution(cnf, gen_max, NP, CR, F, rep, LSS, WS, maxLSS, SEED, outpath);
+            differential_evolution(cnf, gen_max, NP, CR, F, rep, LSS, WS, maxLSS, SEED, hscope, outpath);
 
             fclose(input);
             free_CNF(cnf);
