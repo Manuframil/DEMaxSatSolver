@@ -39,10 +39,10 @@ void sigterm_handler(int signum, siginfo_t *info, void *ptr){
 
     memset(final_line, 0x00, msg_size );
 
-    const char *format = "\ns SATISFIABLE\no %d\nv %s\n";
+    const char *format = "\ns UNKNOWN\no %d\nv %s\n";
     snprintf(final_line, msg_size, format, sigtermMsg.sol, vline );
 
-    write(STDERR_FILENO, final_line, sigtermMsg.assigment_size + sizeof(int) + 21);
+//    write(STDERR_FILENO, final_line, sigtermMsg.assigment_size + sizeof(int) + 17);
 
     free(vline);
     free(final_line);
@@ -281,7 +281,7 @@ void differential_evolution(CNF *cnf, int gen_max, int num_inds, float CR, float
     float seconds;
     int mejor_individuo;
     int mejor_score_overall;
-    int mejor_score;
+    int mejor_score = 0;
     float media_poblacion;
 
 
@@ -303,6 +303,7 @@ void differential_evolution(CNF *cnf, int gen_max, int num_inds, float CR, float
     genStart = clock();
 
     /* Initialize individuals */
+    int acc = 0;
     for (int i=0; i<NP; i++) {
 
         inds[i] = new_individual(D, cnf->clause_count, cnf->clause_count, cnf->clause_count);
@@ -310,12 +311,21 @@ void differential_evolution(CNF *cnf, int gen_max, int num_inds, float CR, float
         random_initialize(&inds[i]);
 
         evaluate(cnf, &inds[i]);
-
+        acc += inds[i]->score;
+        if (inds[i]->score > mejor_score){
+            mejor_score = inds[i]->score;
+            mejor_individuo = i;
+        }
     }
+    
+    media_poblacion = acc/NP;
+    genEnd = clock();
+    seconds = (float) (genEnd - genStart) / CLOCKS_PER_SEC;
+    fprintf(fp, "%lu , %lu, %f, %f\n", cnf->max_cost - mejor_score, cnf->max_cost - mejor_score, cnf->max_cost - media_poblacion, seconds);
     /* Halt after gen_max generations. */
     while (count < gen_max) {
 
-        float acc = 0;
+        acc = 0;
         mejor_score = 0;
         mejor_individuo = 0;
 

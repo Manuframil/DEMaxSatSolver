@@ -1,5 +1,5 @@
 TIMEOUT=$1
-DATA="data/test_06_05/*.wcnf"
+DATA="data/tmp/*.wcnf"
 
 for f in $DATA;
 do
