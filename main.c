@@ -17,7 +17,7 @@
 
 
 
-const char *output_format = "%s_HS_%s_CR%.2f_F%.2f_LSS%.2f_WS%.2f";
+const char *output_format = "%s_HS_%s_CR%.2f_F%.2f_LSS%.2f_RW%.2f";
 
 
 int is_regular_file(const char *path){
@@ -27,7 +27,7 @@ int is_regular_file(const char *path){
 }
 
 void print_description(CNF *cnf, int gen_max, int NP, float CR, float F, 
-    int reps, float LSS, float WS, int maxLSS, int SEED, const char* hscope){
+    int reps, float LSS, float RW, int maxLSS, int SEED, const char* hscope){
     
     printf("c -------------------------------------------\n");
     printf("c BINARY DIFFERENTIAL EVOLUTION MAXSAT SOLVER\n");
@@ -36,7 +36,7 @@ void print_description(CNF *cnf, int gen_max, int NP, float CR, float F,
     printf("c Crossover     = %.2f\n", CR);
     printf("c Mutation      = %.2f\n", F);
     printf("c Repetitions   = %d\n", reps);
-    printf("c Noise param   = %.2f\n", WS);
+    printf("c Noise param   = %.2f\n", RW);
     printf("c Seed          = %d\n", SEED); 
     printf("c LS Step       = %d (%.2f%%) \n", (int) ceil(LSS*cnf->variable_count), LSS);
     printf("c Max LSS       = %d\n", maxLSS);
@@ -69,7 +69,7 @@ int main(int argc,char const *argv[]){
 
     int SEED = atoi(getval("SEED", co));
 
-    float WS = atof(getval("WS", co));
+    float RW = atof(getval("RW", co));
 
     const char* hscope = getval("H-SCOPE", co);
 
@@ -99,7 +99,7 @@ int main(int argc,char const *argv[]){
         char filename[64];
         strcpy(filename, path);
         filename[strlen(filename)-5] = 0;
-        snprintf(outpath, 128, output_format, filename, hscope, CR, F, LSS, WS);
+        snprintf(outpath, 128, output_format, filename, hscope, CR, F, LSS, RW);
 
         struct stat st = {0};
 
@@ -110,10 +110,10 @@ int main(int argc,char const *argv[]){
         strcat(outpath, argv[2]);
         strcat(outpath, ".txt");
 
-        //print_description(cnf, gen_max, NP, CR, F, rep, LSS, WS, maxLSS, SEED, hscope);
+        //print_description(cnf, gen_max, NP, CR, F, rep, LSS, RW, maxLSS, SEED, hscope);
 
 
-        differential_evolution(cnf, gen_max, NP, CR, F, rep, LSS, WS, maxLSS,SEED, hscope, outpath);
+        differential_evolution(cnf, gen_max, NP, CR, F, rep, LSS, RW, maxLSS,SEED, hscope, outpath);
 
         fclose(input);
         free_CNF(cnf);
@@ -157,7 +157,7 @@ int main(int argc,char const *argv[]){
             }
 
             filename[strlen(filename)-5] = 0;
-            snprintf(outpath, 128, output_format, filename, hscope, CR, F, LSS, WS);
+            snprintf(outpath, 128, output_format, filename, hscope, CR, F, LSS, RW);
 
 
             printf("----------------------------------------------------\n");
@@ -165,7 +165,7 @@ int main(int argc,char const *argv[]){
 
             cnf = read_file(input);       
     
-            differential_evolution(cnf, gen_max, NP, CR, F, rep, LSS, WS, maxLSS, SEED, hscope, outpath);
+            differential_evolution(cnf, gen_max, NP, CR, F, rep, LSS, RW, maxLSS, SEED, hscope, outpath);
 
             fclose(input);
             free_CNF(cnf);

@@ -215,7 +215,7 @@ void evaluate(CNF *cnf, Individual **ind){
 }
 
 
-void local_search_step(CNF *cnf,Individual **inds, int currentInd, int npush, float WS){
+void local_search_step(CNF *cnf,Individual **inds, int currentInd, int npush, float RW){
 
     int best_var;
 
@@ -226,7 +226,7 @@ void local_search_step(CNF *cnf,Individual **inds, int currentInd, int npush, fl
         float r = rand() % 100;
         r /= 100;
 
-        if (r > WS){
+        if (r > RW){
             // GSAT
             best_var = score_variables(cnf, inds[currentInd], &sc);
             if (sc > 0)
@@ -234,7 +234,7 @@ void local_search_step(CNF *cnf,Individual **inds, int currentInd, int npush, fl
             reevaluate(cnf, &inds[currentInd], best_var);
 
         }else{
-            // WalkSAT
+            // RandomWalk
             int rand_cl = pick_random_unsat(inds[currentInd]);
             int swapping_var = pick_random_lit(cnf, rand_cl);
             InvertBit(inds[currentInd]->assigment, swapping_var);
@@ -256,7 +256,7 @@ int inHeuristicScope(const char* hscope,Individual *ind, float mediapoblacion){
 
 
 void differential_evolution(CNF *cnf, int gen_max, int num_inds, float CR, float F, 
-    int reps, float LSS, float WS, int maxLSS, int SEED, const char* hscope, const char *outfile){
+    int reps, float LSS, float RW, int maxLSS, int SEED, const char* hscope, const char *outfile){
 
     catch_sigterm();
 
@@ -342,7 +342,7 @@ void differential_evolution(CNF *cnf, int gen_max, int num_inds, float CR, float
             * scope (hscope) parameter.
             */
             if (inHeuristicScope(hscope, inds[i], media_poblacion)){
-                local_search_step(cnf, inds, i, npush, WS);
+                local_search_step(cnf, inds, i, npush, RW);
             }
 
 

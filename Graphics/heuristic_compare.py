@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import os
 import re
 
-solutionfile = "data/mse20-incomplete-unweighted-best.csv"
+solutionfile = "data/mse20-incomplete-weighted-best.csv"
 
 
 def getBestSol(filename):
@@ -23,19 +23,28 @@ def getBestSol(filename):
 
 def main(argv):
     endings = [
-            # '_HS_all_CR0.50_F0.50_LSS0.01_WS0.50',
-            #    '_HS_all_CR0.50_F0.50_LSS0.01_WS0.00',
-            #    '_HS_all_CR0.50_F0.50_LSS0.01_WS1.00',
-               # '_HS_all_CR0.50_F0.50_LSS0.00_WS0.50',
-               '_HS_better_than_mean_CR0.50_F0.50_LSS0.01_WS0.50',
-               # '_HS_better_than_mean_CR0.50_F0.50_LSS0.01_WS0.00',
-               # '_HS_better_than_mean_CR0.50_F0.50_LSS0.01_WS1.00',
+            # Raw
+            '_HS_all_CR0.50_F0.50_LSS0.00_WS0.50',
+            # ED + GWSAT
+            '_HS_all_CR0.50_F0.50_LSS0.01_WS0.50',
+            '_HS_better_than_mean_CR0.50_F0.50_LSS0.01_WS0.50',
+            # ED + GSAT
+            '_HS_all_CR0.50_F0.50_LSS0.01_WS0.00',
+            '_HS_better_than_mean_CR0.50_F0.50_LSS0.01_WS0.00',
+            # ED + Random Walk
+            '_HS_all_CR0.50_F0.50_LSS0.01_WS1.00',
+            '_HS_better_than_mean_CR0.50_F0.50_LSS0.01_WS1.00',
                ]
 
-    labels = ['DE+GWSat:all', 'DE+GSat:all', 'DE+WalkSat:all', 'DE Raw',
-              'DE+GWSat:best', 'DE+GSat:best', 'DE+WalkSat:best']
+    labels = ['Raw ED', 
+        'ED+GWSAT:all', 'ED+GWSAT:best',
+        'ED+GSAT:all', 'ED+GSAT:best',
+        'ED+RW:all', 'ED+RW:best']
 
-    colors = ['aquamarine', 'salmon', 'gold', 'lime', 'orange', 'blue', 'green', 'yellow']
+    colors = ['magenta', 
+        'orange', 'yellow', 
+        'lime', 'forestgreen', 
+        'blue', 'cyan']
 
     txt_path = argv[0][:-5]
 
@@ -52,7 +61,7 @@ def main(argv):
 
 
     for end, label, color in zip(endings, labels, colors):
-        data = np.zeros((1000, 4), dtype=float)
+        data = np.zeros((250, 4), dtype=float)
         count = 0
         for filename in sorted(os.listdir(txt_path + end)):
             fname = os.path.join(txt_path + end, filename)
@@ -63,9 +72,8 @@ def main(argv):
         data /= count
         # print(data[:20])
         tt = np.arange(0, len(data[:, 0]))
-        plt.plot(tt, data[:, 0], "o-", color=color, label=f"{label}", markersize=2)
-        plt.plot(tt, data[:, 1], "-", color=color, alpha=0.25, markersize=1)
-        plt.plot(tt, data[:, 2], "-", color=color, markersize=1)
+        plt.plot(tt, data[:, 0], "-", color=color, label=f"{label}", markersize=2)
+        plt.plot(tt, data[:, 2], ":", color=color, markersize=1)
 
     plt.grid(True)
     plt.legend(loc='upper right')
