@@ -110,7 +110,7 @@ int main(int argc,char const *argv[]){
         strcat(outpath, argv[2]);
         strcat(outpath, ".txt");
 
-        //print_description(cnf, gen_max, NP, CR, F, rep, LSS, RW, maxLSS, SEED, hscope);
+        print_description(cnf, gen_max, NP, CR, F, rep, LSS, RW, maxLSS, SEED, hscope);
 
 
         differential_evolution(cnf, gen_max, NP, CR, F, rep, LSS, RW, maxLSS,SEED, hscope, outpath);
