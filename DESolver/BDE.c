@@ -42,7 +42,7 @@ void sigterm_handler(int signum, siginfo_t *info, void *ptr){
     const char *format = "\ns UNKNOWN\no %d\nv %s\n";
     snprintf(final_line, msg_size, format, sigtermMsg.sol, vline );
 
-//    write(STDERR_FILENO, final_line, sigtermMsg.assigment_size + sizeof(int) + 17);
+    write(STDERR_FILENO, final_line, sigtermMsg.assigment_size + sizeof(int) + 17);
 
     free(vline);
     free(final_line);
@@ -416,7 +416,7 @@ void differential_evolution(CNF *cnf, int gen_max, int num_inds, float CR, float
 
             sigtermMsg.assigment = inds[mejor_individuo]->assigment;
             sigtermMsg.sol = (int) cnf->max_cost - mejor_score;
-            //printf("o %ld\n",cnf->max_cost - mejor_score );
+            printf("o %ld\n",cnf->max_cost - mejor_score );
         }
 
 

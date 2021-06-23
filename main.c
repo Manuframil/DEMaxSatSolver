@@ -96,22 +96,18 @@ int main(int argc,char const *argv[]){
         cnf = read_file(input);
 
         char outpath[128];
-        char filename[64];
-        strcpy(filename, path);
-        filename[strlen(filename)-5] = 0;
-        snprintf(outpath, 128, output_format, filename, hscope, CR, F, LSS, RW);
 
-        struct stat st = {0};
-
-        if (stat(outpath, &st) == -1) {
-            mkdir(outpath, 0700);
+        if (argv[2] == NULL){
+            char filename[64];
+            strcpy(filename, path);
+            filename[strlen(filename)-5] = 0;
+            snprintf(outpath, 128, output_format, filename, hscope, CR, F, LSS, RW);
+            strcat(outpath, ".txt");
+        } else {
+            strcpy(outpath, argv[2]);
         }
-        strcat(outpath, "/");
-        strcat(outpath, argv[2]);
-        strcat(outpath, ".txt");
 
         print_description(cnf, gen_max, NP, CR, F, rep, LSS, RW, maxLSS, SEED, hscope);
-
 
         differential_evolution(cnf, gen_max, NP, CR, F, rep, LSS, RW, maxLSS,SEED, hscope, outpath);
 
@@ -158,7 +154,7 @@ int main(int argc,char const *argv[]){
 
             filename[strlen(filename)-5] = 0;
             snprintf(outpath, 128, output_format, filename, hscope, CR, F, LSS, RW);
-
+            strcat(outpath, ".txt");
 
             printf("----------------------------------------------------\n");
             printf("Solving %s\n", de->d_name );
