@@ -62,7 +62,10 @@ void catch_sigterm(){
 
 static int pick_random_unsat(Individual *ind){
 
-    int r = rand() % (ind->unsatCl_pos);
+
+    //printf("%d\n", ind->unsatCl_pos);
+
+    int r = (ind->unsatCl_pos) ? rand() % (ind->unsatCl_pos): 0;
     return ind->unsatCl[r];
 
 }
