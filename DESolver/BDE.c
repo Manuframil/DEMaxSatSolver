@@ -28,10 +28,10 @@ void assigment_to_string (char *dest ,const int *assigment, int assigment_size){
     free(out);
 }
 
-void sigterm_handler(int signum, siginfo_t *info, void *ptr){
+void print_final_line(){
 
     char *final_line = malloc(sizeof(char) * (sigtermMsg.assigment_size + 128) );
-    
+
     char *vline = malloc(sizeof(char) * sigtermMsg.assigment_size);
     assigment_to_string(vline, sigtermMsg.assigment, sigtermMsg.assigment_size);
 
@@ -46,6 +46,12 @@ void sigterm_handler(int signum, siginfo_t *info, void *ptr){
 
     free(vline);
     free(final_line);
+}
+
+
+void sigterm_handler(int signum, siginfo_t *info, void *ptr){
+
+    print_final_line();
 
     exit(0);
 }
@@ -431,6 +437,8 @@ void differential_evolution(CNF *cnf, int gen_max, int num_inds, float CR, float
 
         count++;
     }
+
+    print_final_line();
 
     for (int i=0; i < NP; i++){
         free_individual(&inds[i]);
