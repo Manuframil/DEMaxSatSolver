@@ -65,6 +65,12 @@ static void free_individual(Individual **ind){
 
 }
 
+static void copy_assigment(int **or, int **dest, int assigment_size){
+    for (int i = 0; i < assigment_size; i++){
+        AssignBit((*dest), i, GetBit((*or), i));
+    }
+}
+
 static void deep_copy_ind(Individual **or, Individual **dest){
 
     assert((*or)->assigment_size == (*dest)->assigment_size);
@@ -76,8 +82,8 @@ static void deep_copy_ind(Individual **or, Individual **dest){
     (*dest)->score = (*or)->score;
     (*dest)->solution = (*or)->solution;
 
-    for (int i=0; i < (ceil((*or)->assigment_size/BitsInt)+1); i++){
-        (*dest)->assigment[i] = (*or)->assigment[i];
+    for (int i = 0; i < (*or)->assigment_size; i++){
+        AssignBit((*dest)->assigment, i, GetBit((*or)->assigment, i));
     }
 
     for (int i = 0; i < (*or)->clValues_size; i++){
@@ -87,5 +93,4 @@ static void deep_copy_ind(Individual **or, Individual **dest){
     }
 
     (*dest)->unsatCl_pos = (*or)->unsatCl_pos;
-
 }

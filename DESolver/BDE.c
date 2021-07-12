@@ -13,27 +13,20 @@ struct sigtermMsg {
 } sigtermMsg;
 
 
-void assigment_to_string (char *dest ,const int *assigment, int assigment_size){
+void assigment_to_string (char **dest ,const int *assigment, int assigment_size){
 
-    char *out = malloc(assigment_size);
-    memset(out, 0, assigment_size);
-
+    memset((*dest), 0, assigment_size);
     for (int i=0; i < assigment_size; i++){
-        char aux[8];
-        sprintf(aux, "%d", GetBit(assigment, i));
-        strcat(out, aux);
+        sprintf(&(*dest)[i],"%d", GetBit(assigment, i));
     }
-
-    strcpy(dest, out);
-    free(out);
 }
 
 void print_final_line(){
 
     char *final_line = malloc(sizeof(char) * (sigtermMsg.assigment_size + 128) );
 
-    char *vline = malloc(sizeof(char) * sigtermMsg.assigment_size);
-    assigment_to_string(vline, sigtermMsg.assigment, sigtermMsg.assigment_size);
+    char *vline = malloc(sizeof(char) * sigtermMsg.assigment_size + 1);
+    assigment_to_string(&vline, sigtermMsg.assigment, sigtermMsg.assigment_size);
 
     size_t msg_size = sizeof(char) * (sigtermMsg.assigment_size + 128);
 
@@ -42,7 +35,7 @@ void print_final_line(){
     const char *format = "\ns UNKNOWN\no %d\nv %s\n";
     snprintf(final_line, msg_size, format, sigtermMsg.sol, vline );
 
-    write(STDERR_FILENO, final_line, sigtermMsg.assigment_size + sizeof(int) + 17);
+    write(STDERR_FILENO, final_line, sigtermMsg.assigment_size + sizeof(int) + 18);
 
     free(vline);
     free(final_line);
@@ -52,7 +45,6 @@ void print_final_line(){
 void sigterm_handler(int signum, siginfo_t *info, void *ptr){
 
     print_final_line();
-
     exit(0);
 }
 
@@ -67,9 +59,6 @@ void catch_sigterm(){
 }
 
 static int pick_random_unsat(Individual *ind){
-
-
-    //printf("%d\n", ind->unsatCl_pos);
 
     int r = (ind->unsatCl_pos) ? rand() % (ind->unsatCl_pos): 0;
     return ind->unsatCl[r];
@@ -270,6 +259,8 @@ void differential_evolution(CNF *cnf, int gen_max, int num_inds, float CR, float
     catch_sigterm();
 
     sigtermMsg.assigment_size = (int) cnf->variable_count;
+    sigtermMsg.assigment = calloc(ceil(cnf->variable_count/BitsInt)+1, sizeof(int));
+    int *mejor_assigment = calloc(ceil(cnf->variable_count/BitsInt)+1, sizeof(int));
 
     const int D = (int) cnf->variable_count;    // Dimension vectores
     const int NP = num_inds;
@@ -288,7 +279,6 @@ void differential_evolution(CNF *cnf, int gen_max, int num_inds, float CR, float
     clock_t genStart, genEnd;
     FILE *fp = NULL;
     float seconds;
-    int mejor_individuo;
     int mejor_score_overall;
     int mejor_score = 0;
     float media_poblacion;
@@ -323,7 +313,6 @@ void differential_evolution(CNF *cnf, int gen_max, int num_inds, float CR, float
         acc += inds[i]->score;
         if (inds[i]->score > mejor_score){
             mejor_score = inds[i]->score;
-            mejor_individuo = i;
         }
     }
     
@@ -336,11 +325,11 @@ void differential_evolution(CNF *cnf, int gen_max, int num_inds, float CR, float
 
         acc = 0;
         mejor_score = 0;
-        mejor_individuo = 0;
-
 
         /* Start loop through population. */
         for (int i=0; i<NP; i++) {
+
+            Individual *indTmp = new_individual(D, cnf->clause_count, cnf->clause_count, cnf->clause_count);
 
             /*
             * Population improvement step
@@ -354,16 +343,12 @@ void differential_evolution(CNF *cnf, int gen_max, int num_inds, float CR, float
                 local_search_step(cnf, inds, i, npush, RW);
             }
 
-
             /********** Mutate/recombine **********/
             /* Randomly pick 3 vectors, all different from i */
             do a = rand() % NP; while (a==i);
             do b = rand() % NP; while (b==i || b==a);
             do c = rand() % NP; while (c==i || c==a || c==b);
 
-
-            Individual *indTmp = new_individual(D, cnf->clause_count, cnf->clause_count, cnf->clause_count);
-            //indTmp->assigment = trialPos;
 
             // Define the mutant of this gen
             for (int j=0; j<D; j++){
@@ -405,7 +390,7 @@ void differential_evolution(CNF *cnf, int gen_max, int num_inds, float CR, float
 
             if (inds[i]->score > mejor_score){
                 mejor_score = inds[i]->score;
-                mejor_individuo = i;
+                copy_assigment(&inds[i]->assigment, &mejor_assigment, inds[i]->assigment_size);
             }
         }
 
@@ -423,8 +408,9 @@ void differential_evolution(CNF *cnf, int gen_max, int num_inds, float CR, float
         if (mejor_score > mejor_score_overall) {
             mejor_score_overall = mejor_score;
 
-            sigtermMsg.assigment = inds[mejor_individuo]->assigment;
+            copy_assigment(&mejor_assigment, &sigtermMsg.assigment, sigtermMsg.assigment_size);
             sigtermMsg.sol = (int) cnf->max_cost - mejor_score;
+
             printf("o %ld\n",cnf->max_cost - mejor_score );
         }
 
@@ -455,5 +441,8 @@ void differential_evolution(CNF *cnf, int gen_max, int num_inds, float CR, float
     free(all_bests);
     free(all_means);
     free(all_times);
+
+    free(mejor_assigment);
+    free(sigtermMsg.assigment);
 
 }
