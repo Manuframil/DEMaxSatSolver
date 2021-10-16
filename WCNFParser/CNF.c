@@ -16,12 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
 **/
 
-#include <stdio.h>
-#include <ctype.h>
 #include <stdint.h>
 #include <assert.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include "Clause.c"
 #include "Entry.c"
 
@@ -57,7 +54,6 @@ static CNF *new_CNF(size_t variable_count, size_t clause_count, size_t top) {
 
     for (int i = 0; i < variable_count; i++)
         cnf->entries[i] = new_entry();
-
     return cnf;
 }
 

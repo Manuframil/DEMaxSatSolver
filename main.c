@@ -33,10 +33,7 @@
 
 #define CONFIG_FILE "maxsat.cfg"
 
-
-
 const char *output_format = "%s_HS_%s_CR%.2f_F%.2f_LSS%.2f_RW%.2f";
-
 
 int is_regular_file(const char *path){
     struct stat path_stat;
@@ -64,57 +61,39 @@ void print_description(CNF *cnf, int gen_max, int NP, float CR, float F,
     printf("c h - scope     = %s \n", hscope);
     printf("c -------------------------------------------\n");
     printf("\n");
-
 }
 
-
 int main(int argc,char const *argv[]){
-
     //Settings
     config_option_t co;
     co = read_config_file(CONFIG_FILE);
 
     int gen_max = atoi(getval("GEN", co)); //Numero maximo de generaciones
     int NP = atoi(getval("NP", co));  // Numero individuos
-
     float CR = atof(getval("CR", co)); // Crossover probability
     float F = atof(getval("F", co));  // Mutation probability
-
     int rep = atoi(getval("rep", co));
-
     float LSS = atof(getval("LSS", co));
     int maxLSS = atoi(getval("maxLSS", co));
-
     int SEED = atoi(getval("SEED", co));
-
     float RW = atof(getval("RW", co));
-
     const char* hscope = getval("H-SCOPE", co);
 
     if (argv[1] == NULL){
         printf("Error: No wcnf file was given!\n");
         exit(0);
     }
-
     char path[128];
     strcpy(path, argv[1]);
-
-
     if (is_regular_file(path)){
-
         CNF *cnf;
         FILE *input;
-
-
         if ((input = fopen(path, "r")) == NULL){
             printf("Error opening file %s\n",path);
             exit(1);
         }
-
         cnf = read_file(input);
-
         char outpath[128];
-
         if (argv[2] == NULL){
             char filename[64];
             strcpy(filename, path);
@@ -124,28 +103,18 @@ int main(int argc,char const *argv[]){
         } else {
             strcpy(outpath, argv[2]);
         }
-
         print_description(cnf, gen_max, NP, CR, F, rep, LSS, RW, maxLSS, SEED, hscope);
-
         differential_evolution(cnf, gen_max, NP, CR, F, rep, LSS, RW, maxLSS,SEED, hscope, outpath);
-
         fclose(input);
         free_CNF(cnf);
-
-
     } else {
-
         struct dirent *de;
-
         DIR *dr = opendir(path);
-
         if (dr == NULL){
             printf("Error opening dir %s\n", path);
             exit(0);
         }
-
         while ((de=readdir(dr)) != NULL){
-
             if (!strcmp (de->d_name, "."))
                 continue;
             if (!strcmp (de->d_name, ".."))    
@@ -154,46 +123,28 @@ int main(int argc,char const *argv[]){
                 continue;
             if (strcmp(de->d_name + (strlen(de->d_name)-4), "wcnf") != 0)
                 continue;
-
-
             CNF *cnf;
             FILE *input;
-
             char outpath[128];
-
             char filename[128];
             strcpy(filename, path);
             strcat(filename, de->d_name);
-
             if ((input = fopen(filename, "r")) == NULL){
                 printf("Error opening file %s\n",filename);
                 exit(1);
             }
-
             filename[strlen(filename)-5] = 0;
             snprintf(outpath, 128, output_format, filename, hscope, CR, F, LSS, RW);
             strcat(outpath, ".txt");
-
             printf("----------------------------------------------------\n");
             printf("Solving %s\n", de->d_name );
-
-            cnf = read_file(input);       
-    
+            cnf = read_file(input);
             differential_evolution(cnf, gen_max, NP, CR, F, rep, LSS, RW, maxLSS, SEED, hscope, outpath);
-
             fclose(input);
             free_CNF(cnf);
-            
         }
-
         closedir(dr);
-
-
     }
-
-   
     freeConfig(co);
-
-
     return 0;
 }

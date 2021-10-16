@@ -27,6 +27,7 @@ typedef struct Clause {
     size_t size;
     size_t capacity;
     size_t weigth;
+    unsigned int is_hard;
     Literal literals[1];
 } Clause;
 

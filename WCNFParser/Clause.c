@@ -16,14 +16,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
 **/
 
-#include <limits.h>
 #include <stdbool.h>
 #include <assert.h>
-#include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <ctype.h>
-
 
 static inline size_t Clause_max_capacity (){
     return (SIZE_MAX - sizeof(Clause))/sizeof(Literal);
@@ -48,23 +44,25 @@ static size_t Clause_next_capacity(size_t const capacity) {
 }
 
 
-static Clause* new_clause_impl(size_t const capacity, int const weigth){
+static Clause* new_clause_impl(size_t const capacity, int const weight, unsigned int const is_hard){
     size_t const alloc_size = Clause_size_for(capacity);
     assert(alloc_size);
-    assert(weigth);
+    assert(weight);
     Clause *const clause = calloc(capacity, alloc_size);
     if (!clause)
         return NULL;
-    if (weigth > SIZE_MAX)
+    if (weight > SIZE_MAX)
         return NULL;
     clause->size = 0;
     clause->capacity = capacity;
-    clause->weigth = weigth;
+    clause->weigth = weight;
+    clause->is_hard = is_hard;
     return clause;
 }
 
-static Clause *new_clause(int const weigth){
-    return new_clause_impl(4, weigth);
+static Clause *new_clause(int const weight, unsigned int const is_hard ){
+    if (is_hard) printf("????");
+    return new_clause_impl(4, weight, is_hard);
 }
 
 static void free_clause(Clause *clause){

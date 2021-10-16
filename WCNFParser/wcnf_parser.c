@@ -24,6 +24,8 @@
 #include <stdbool.h>
 #include "CNF.c"
 
+#define IS_HARD(w, top)    (w >= top ? 1 : 0)
+
 static CNF *read_p_line(FILE *file) {
     assert(file);
     size_t variable_count, clause_count, top;
@@ -61,7 +63,7 @@ static bool read_clauses(FILE *file, CNF *cnf) {
         if (match_count != 1) 
             return false;
         if (isWeigth){
-            cnf->clauses[i] = new_clause(literal);
+            cnf->clauses[i] = new_clause(literal, IS_HARD(literal, cnf->top));
             cnf->max_cost += literal;
             isWeigth = false;
             continue;
