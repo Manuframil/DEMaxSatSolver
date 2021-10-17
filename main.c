@@ -83,7 +83,7 @@ int main(int argc,char const *argv[]){
         printf("Error: No wcnf file was given!\n");
         exit(0);
     }
-    char path[128];
+    char path[256];
     strcpy(path, argv[1]);
     if (is_regular_file(path)){
         CNF *cnf;

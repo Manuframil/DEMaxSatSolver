@@ -20,6 +20,7 @@ struct sigtermMsg {
     int assigment_size;
     int *assigment;
     int sol;
+    int satisfie_hard;
 } sigtermMsg;
 
 void assigment_to_string (char **dest ,const int *assigment, int assigment_size){
@@ -28,6 +29,12 @@ void assigment_to_string (char **dest ,const int *assigment, int assigment_size)
         sprintf(&(*dest)[i],"%d", GetBit(assigment, i));
     }
 }
+
+void print_solution_not_found(){
+    const char *out = "c SOLUTION NOT FOUND\n";
+    write(STDERR_FILENO, out, 21);
+}
+
 
 void print_final_line(){
     char *final_line = malloc(sizeof(char) * (sigtermMsg.assigment_size + 128) );
@@ -42,9 +49,15 @@ void print_final_line(){
     free(final_line);
 }
 
+void print_message(){
+    if (sigtermMsg.satisfie_hard)
+        print_final_line();
+    else
+        print_solution_not_found();
+}
 
 void sigterm_handler(int signum, siginfo_t *info, void *ptr){
-    print_final_line();
+    print_message();
     exit(0);
 }
 

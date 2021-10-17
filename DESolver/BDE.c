@@ -32,8 +32,8 @@
  * @return Index of a random unsatisfied clause
  */
 static int pick_random_unsat(Individual *ind){
-    int r = (ind->unsatCl_pos) ? rand() % (ind->unsatCl_pos): 0;
-    return ind->unsatCl[r];
+    int r = (ind->unsat_size) ? rand() % (ind->unsat_size) : 0;
+    return ind->unsat_clauses[r];
 }
 
 /**
@@ -71,9 +71,8 @@ void reevaluate(CNF *cnf, Individual **ind, int flipped_variable){
         }
         ((*ind)->supports[cl]) = n_supports;
         AssignBit((*ind)->clValues, cl, sat_val);
-        ((*ind)->solution) += (sat_val - currentSat);
-        ((*ind)->score) += (sat_val - currentSat) * (int) cnf->clauses[cl]->weigth;
-        if (cnf->clauses[cl]->is_hard) (*ind)->hard_unsat += (sat_val - currentSat);
+        ((*ind)->score) += (!sat_val - !currentSat) * (int) cnf->clauses[cl]->weight;
+        if (cnf->clauses[cl]->is_hard) (*ind)->hard_unsat += (!sat_val - !currentSat);
     }
 }
 
@@ -121,11 +120,11 @@ int score_variables(CNF *cnf, Individual *ind, int *output_score){
             pos = abs(v) - 1;
             var =  (v < 0) ? !GetBit(ind->assigment, pos) : GetBit(ind->assigment, pos);
             if (var && ind->supports[i] == 1){
-                cl_break[pos] += (int) cnf->clauses[i]->weigth;
+                cl_break[pos] += (int) cnf->clauses[i]->weight;
                 continue;
             }
             if (!var && !GetBit(ind->clValues, i))
-                cl_make[pos]+= (int) cnf->clauses[i]->weigth;
+                cl_make[pos]+= (int) cnf->clauses[i]->weight;
         }
     }
     int bv = select_variable(cl_break, cl_make, cnf->variable_count, output_score);
@@ -142,9 +141,8 @@ int score_variables(CNF *cnf, Individual *ind, int *output_score){
  */
 void evaluate(CNF *cnf, Individual **ind){
     int i, j, sat_val, v=0, pos=0, var = 0, n_soportes = 0, newScore = 0;
-    (*ind)->solution = 0;
-    (*ind)->score = 0;
-    (*ind)->unsatCl_pos = 0;
+    (*ind)->score = INT_MAX;
+    (*ind)->unsat_size = 0;
     (*ind)->hard_unsat = 0;
     for ( i = 0; i < cnf->clause_count; i++) {
         sat_val = 0;
@@ -158,17 +156,15 @@ void evaluate(CNF *cnf, Individual **ind){
             if (var) n_soportes++;
         }
         if (!sat_val){
-            (*ind)->unsatCl[(*ind)->unsatCl_pos] = i;
-            (*ind)->unsatCl_pos++;
+            (*ind)->unsat_clauses[(*ind)->unsat_size] = i;
+            (*ind)->unsat_size++;
         }
         (*ind)->supports[i] = n_soportes;
         AssignBit((*ind)->clValues, i, sat_val);
-        (*ind)->solution += sat_val;
         if (cnf->clauses[i]->is_hard){
-            printf("%d\n", cnf->clauses[i]->is_hard);
-            (*ind)->hard_unsat += sat_val;
+            (*ind)->hard_unsat += !sat_val;
         }
-        newScore += (int) (sat_val * cnf->clauses[i]->weigth);
+        newScore += (int) (!sat_val * cnf->clauses[i]->weight);
     }
     (*ind)->score = newScore;
 }
@@ -252,18 +248,17 @@ void differential_evolution(CNF *cnf, int gen_max, int num_inds, float CR, float
     float *all_means = calloc(gen_max, sizeof(float));
     float *all_times = calloc(gen_max, sizeof(float));
 
-
     int *mutant = (int*) calloc (ceil(D/BitsInt)+1, sizeof(int));
     memset(mutant, 0, ceil(D/BitsInt)+1);
-
 
     Individual **inds = (Individual**) calloc(NP, sizeof(Individual*));
     clock_t genStart, genEnd;
     FILE *fp = NULL;
     float seconds;
-    int mejor_score_overall;
-    int mejor_score = 0;
+    int mejor_score_overall = INT_MAX;
+    int mejor_score = INT_MAX;
     float media_poblacion;
+    int best_satisfie_hards;
 
 
     fp = fopen(outfile, "w+");
@@ -274,27 +269,20 @@ void differential_evolution(CNF *cnf, int gen_max, int num_inds, float CR, float
 
     int a = 0, b = 0, c = 0;
 
-    if (SEED == -1)
-        srand(time(0));
-    else
-        srand(SEED);
-
-    mejor_score_overall = 0;
+    if (SEED == -1) srand(time(0));
+    else srand(SEED);
 
     genStart = clock();
-
     /* Initialize individuals */
     int acc = 0;
     for (int i=0; i<NP; i++) {
-
         inds[i] = new_individual(D, cnf->clause_count, cnf->clause_count, cnf->clause_count);
-
         random_initialize(&inds[i]);
-
         evaluate(cnf, &inds[i]);
         acc += inds[i]->score;
-        if ((inds[i]->score > mejor_score) && (satisfie_all_hard(inds[i]))){
+        if (inds[i]->score < mejor_score){
             mejor_score = inds[i]->score;
+            best_satisfie_hards = satisfie_all_hard(inds[i]);
         }
     }
     
@@ -305,13 +293,12 @@ void differential_evolution(CNF *cnf, int gen_max, int num_inds, float CR, float
     /* Halt after gen_max generations. */
     while (count < gen_max) {
 
-        //printf("dentro del bucle\n");
-
         acc = 0;
-        mejor_score = 0;
+        mejor_score = INT_MAX;
 
         /* Start loop through population. */
         for (int i=0; i<NP; i++) {
+            //printf("score = %d\n",inds[i]->score);
             Individual *indTmp = new_individual(D, cnf->clause_count, cnf->clause_count, cnf->clause_count);
             /*
             * Population improvement step
@@ -352,15 +339,15 @@ void differential_evolution(CNF *cnf, int gen_max, int num_inds, float CR, float
             /* Evaluate indTmp with fitness function. */
             evaluate(cnf, &indTmp);
             /* If indTmp->score improves on inds[i]->score, update inds[i] */
-            if (indTmp->score >= inds[i]->score) {
+            if (indTmp->score <= inds[i]->score) {
                 deep_copy_ind(&indTmp, &inds[i]);
             }
             free_individual(&indTmp);
-
             acc += inds[i]->score;
-            if (inds[i]->score > mejor_score && satisfie_all_hard(inds[i])){
+            if (inds[i]->score < mejor_score){
                 mejor_score = inds[i]->score;
                 copy_assigment(&inds[i]->assigment, &mejor_assigment, inds[i]->assigment_size);
+                best_satisfie_hards = satisfie_all_hard(inds[i]);
             }
         }
 
@@ -374,22 +361,23 @@ void differential_evolution(CNF *cnf, int gen_max, int num_inds, float CR, float
         all_bests[count] += (float) mejor_score/ (float) reps;
         all_means[count] += media_poblacion/ (float) reps;
 
-
-        if (mejor_score > mejor_score_overall) {
+        if (mejor_score < mejor_score_overall) {
             mejor_score_overall = mejor_score;
-
             copy_assigment(&mejor_assigment, &sigtermMsg.assigment, sigtermMsg.assigment_size);
-            sigtermMsg.sol = (int) cnf->max_cost - mejor_score;
-
-            printf("o %ld\n",cnf->max_cost - mejor_score );
+            sigtermMsg.sol = (int) mejor_score;
+            sigtermMsg.satisfie_hard = best_satisfie_hards;
+            //if (best_satisfie_hards)
+                printf("o %d\n", mejor_score);
         }
         genEnd = clock();
         seconds = (float) (genEnd - genStart) / CLOCKS_PER_SEC;
         all_times[count] += seconds;
-        fprintf(fp, "%lu , %lu, %f, %f\n", cnf->max_cost - mejor_score_overall, cnf->max_cost - mejor_score, cnf->max_cost - media_poblacion, seconds);
+        fprintf(fp, "%d , %d, %f, %f\n", mejor_score_overall, mejor_score, media_poblacion, seconds);
         count++;
     }
-    print_final_line();
+
+    print_message();
+
     for (int i=0; i < NP; i++){
         free_individual(&inds[i]);
     }
