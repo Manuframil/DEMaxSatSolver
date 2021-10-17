@@ -26,15 +26,15 @@ static const int LiteralMax = INT_MAX;
 typedef struct Clause {
     size_t size;
     size_t capacity;
-    size_t weigth;
+    size_t weight;
     unsigned int is_hard;
-    Literal literals[1];
+    Literal *literals;
 } Clause;
 
 typedef struct Entry {
     size_t size;
     size_t capacity;
-    int clauses[1];
+    int *clauses;
 } Entry; 
 
 typedef struct CNF {

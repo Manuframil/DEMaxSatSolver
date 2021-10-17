@@ -16,23 +16,20 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
 **/
 
-#include <limits.h>
 #include <stdbool.h>
 #include <assert.h>
-#include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <ctype.h>
 
 static inline size_t Entry_max_capacity (){
-    return (SIZE_MAX - sizeof(Entry))/sizeof(int);
+    return SIZE_MAX/sizeof(int);
 }
 
 static size_t Entry_size_for(size_t const count_of_clauses){
 	assert(count_of_clauses);
 	if (count_of_clauses > Entry_max_capacity())
 		return 0;
-	return sizeof(Entry) + count_of_clauses * sizeof(int);
+	return count_of_clauses * sizeof(int);
 }
 
 static size_t Entry_next_capacity(size_t const capacity){
@@ -47,13 +44,18 @@ static size_t Entry_next_capacity(size_t const capacity){
 }
 
 static Entry* new_entry_impl(size_t const capacity){
-	size_t const alloc_size = Entry_size_for(capacity);
-	assert(alloc_size);
-	Entry *const entry = calloc(capacity, alloc_size);
+    size_t const entry_alloc_size = sizeof(Entry);
+	size_t const clauses_alloc_size = Entry_size_for(capacity);
+	assert(entry_alloc_size);
+	assert(clauses_alloc_size);
+	Entry *const entry = malloc(entry_alloc_size);
+    int *const clauses = malloc(clauses_alloc_size);
 	if (!entry)
 		return NULL;
 	entry->size = 0;
 	entry->capacity = capacity;
+    entry->clauses = clauses;
+    memset(entry->clauses, 0, capacity);
 	return entry;
 }
 
@@ -62,21 +64,19 @@ static Entry *new_entry(){
 }
 
 static void free_entry(Entry *entry){
+    free(entry->clauses);
 	free(entry);
 }
 
 static bool grow_entry(Entry **entry_ptr, size_t by){
 	assert(entry_ptr);
 	if (!*entry_ptr)
-		return (*entry_ptr = new_entry_impl(by));
+        return (*entry_ptr = new_entry_impl(by));
 	Entry *const entry = *entry_ptr;
 	//Overflow
-	if (entry->size > (SIZE_MAX - by))
-		return false;
-	if (by > Entry_max_capacity())
-		return false;
-	if (entry->size > (Entry_max_capacity() - by))
-		return false;
+	if (entry->size > (SIZE_MAX - by)) return false;
+	if (by > Entry_max_capacity()) return false;
+	if (entry->size > (Entry_max_capacity() - by)) return false;
 	// New size
 	size_t const new_size = entry->size + by;
     assert(new_size <= Entry_max_capacity());
@@ -86,16 +86,13 @@ static bool grow_entry(Entry **entry_ptr, size_t by){
 		while (new_capacity && new_capacity < new_size){
 			new_capacity = Entry_next_capacity(new_capacity);
 		}
-		if (!new_capacity)
-			return false;
-		// Aumentamos el espacio para la entrada
-		Entry *const new_entry = realloc(entry, Entry_size_for(new_capacity));
-		if (!new_entry)
-			return false;
-		*entry_ptr = new_entry;
+		if (!new_capacity) return false;
+		int *const new_clauses = realloc(entry->clauses, Entry_size_for(new_capacity));
+		if (!new_clauses) return false;
+		(*entry_ptr)->clauses = new_clauses;
 		(*entry_ptr)->capacity = new_capacity;
-	}
-	(*entry_ptr)->clauses[new_size] = 0;
+        memset((*entry_ptr)->clauses + (*entry_ptr)->size, 0, new_capacity-(*entry_ptr)->size);
+    }
 	return true;
 }
 

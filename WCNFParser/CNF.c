@@ -49,8 +49,8 @@ static CNF *new_CNF(size_t variable_count, size_t clause_count, size_t top) {
     cnf->clause_count = clause_count;
     cnf->top = top;
     cnf->max_cost = 0;
-    cnf->entries = malloc(variable_count * sizeof(Entry));
-    cnf->clauses = malloc(clause_count * sizeof(Clause));
+    cnf->entries = calloc(variable_count, sizeof(Entry));
+    cnf->clauses = calloc(clause_count, sizeof(Clause));
 
     for (int i = 0; i < variable_count; i++)
         cnf->entries[i] = new_entry();
