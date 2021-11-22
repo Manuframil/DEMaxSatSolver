@@ -1,0 +1,1 @@
+DEMaxSAT is a solver based on Differential Evolution.

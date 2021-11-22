@@ -1,0 +1,15 @@
+#!/bin/bash
+delay=3
+wl=$(($STAREXEC_WL_LIMIT-$delay-1))
+cpu=$(($STAREXEC_CPU_LIMIT-$delay-1))
+mem=$STAREXEC_MEM_LIMIT
+
+echo "c [MSE2021] -- begin -- [MSE2021]"
+gunzip -c $1 > maxsat.wcnf
+./runsolver -d 15 -o output.out -v output.var -w output.wat -C $cpu -W $wl -M $mem ./demaxsat maxsat.wcnf
+cat output.out
+rm -f maxsat.wcnf
+rm -f output.out
+rm -f output.var
+rm -f output.wat
+echo "c [MSE2021] -- end -- [MSE2021]"

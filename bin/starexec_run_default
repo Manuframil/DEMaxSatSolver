@@ -1,0 +1,6 @@
+#!/bin/bash
+delay=3
+cpu=60
+wl=60
+gunzip -c $1 > maxsat.wcnf
+./runsolver -d $delay -C $cpu -W $wl -v out.v -w out.w ./demaxsat maxsat.wcnf
