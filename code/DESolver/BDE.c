@@ -217,11 +217,11 @@ int inHeuristicScope(const char* heuristic_scope, Individual *ind, float populat
 
 
 /**
- * Implements the main algorithm: Binary Difference Evolution w/ GWSAT
+ * Implements the main algorithm: Binary Difference Evolution w/ GSAT-RW
  *
  * @param cnf
  * @param gen_max
- * @param num_inds
+ * @param pop
  * @param CR
  * @param F
  * @param reps
@@ -230,9 +230,8 @@ int inHeuristicScope(const char* heuristic_scope, Individual *ind, float populat
  * @param maxLSS
  * @param SEED
  * @param hscope
- * @param outfile
  */
-void differential_evolution(CNF *cnf, int gen_max, int num_inds, float CR, float F, float LSS, float RW, int maxLSS, int SEED, const char* hscope, const char *outfile){
+void differential_evolution(CNF *cnf, int gen_max, int pop, float CR, float F, float LSS, float RW, int maxLSS, int SEED, const char* hscope){
 
     catch_sigterm();
 
@@ -241,37 +240,22 @@ void differential_evolution(CNF *cnf, int gen_max, int num_inds, float CR, float
     int *mejor_assigment = calloc(ceil(cnf->variable_count/BitsInt)+1, sizeof(int));
 
     const int D = (int) cnf->variable_count;    // Dimension vectores
-    const int NP = num_inds;
-
-    float *all_bests = calloc(gen_max, sizeof(float));
-    float *all_means = calloc(gen_max, sizeof(float));
-    float *all_times = calloc(gen_max, sizeof(float));
+    const int NP = pop;
 
     int *mutant = (int*) calloc (ceil(D/BitsInt)+1, sizeof(int));
     memset(mutant, 0, ceil(D/BitsInt)+1);
 
     Individual **inds = (Individual**) calloc(NP, sizeof(Individual*));
-    clock_t genStart, genEnd;
-    //FILE *fp = NULL;
-    float seconds;
     int mejor_score_overall = INT_MAX;
     int mejor_score = INT_MAX;
     float media_poblacion;
     int best_satisfie_hards;
-
-
-    //fp = fopen(outfile, "w+");
-  
     int count = 0;
-
     int npush = fmin((int) ceil(cnf->variable_count * LSS), maxLSS);
-
     int a = 0, b = 0, c = 0;
-
     if (SEED == -1) srand(time(0));
     else srand(SEED);
 
-    genStart = clock();
     /* Initialize individuals */
     int acc = 0;
     for (int i=0; i<NP; i++) {
@@ -286,12 +270,8 @@ void differential_evolution(CNF *cnf, int gen_max, int num_inds, float CR, float
     }
     
     media_poblacion = acc/NP;
-    genEnd = clock();
-    seconds = (float) (genEnd - genStart) / CLOCKS_PER_SEC;
-    //fprintf(fp, "%lu , %lu, %f, %f\n", cnf->max_cost - mejor_score, cnf->max_cost - mejor_score, cnf->max_cost - media_poblacion, seconds);
     /* Halt after gen_max generations. */
-    while (count < gen_max) {
-
+    while (count < gen_max || gen_max == -1) {
         acc = 0;
         mejor_score = INT_MAX;
 
@@ -357,21 +337,14 @@ void differential_evolution(CNF *cnf, int gen_max, int num_inds, float CR, float
 
         media_poblacion = acc/(float) NP;
 
-        all_bests[count] += (float) mejor_score;
-        all_means[count] += media_poblacion;
-
         if (mejor_score < mejor_score_overall) {
             mejor_score_overall = mejor_score;
             copy_assigment(&mejor_assigment, &sigtermMsg.assigment, sigtermMsg.assigment_size);
             sigtermMsg.sol = (int) mejor_score;
             sigtermMsg.satisfie_hard = best_satisfie_hards;
-            //if (best_satisfie_hards)
+            if (best_satisfie_hards)
                 printf("o %d\n", mejor_score);
         }
-        genEnd = clock();
-        seconds = (float) (genEnd - genStart) / CLOCKS_PER_SEC;
-        all_times[count] += seconds;
-        //fprintf(fp, "%d , %d, %f, %f\n", mejor_score_overall, mejor_score, media_poblacion, seconds);
         count++;
     }
 
@@ -384,9 +357,6 @@ void differential_evolution(CNF *cnf, int gen_max, int num_inds, float CR, float
     //fclose(fp);
     free(inds);
     free(mutant);
-    free(all_bests);
-    free(all_means);
-    free(all_times);
     free(mejor_assigment);
     free(sigtermMsg.assigment);
 }
