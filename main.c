@@ -20,17 +20,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <dirent.h>
 #include <math.h>
 #include "WCNFParser/CNF_types.h"
 #include "DESolver/BDE.c"
 #include "WCNFParser/wcnf_parser.c"
 #include "SettingParser/settingParser.c"
 #include <argp.h>
-
-#define CONFIG_FILE "maxsat.cfg"
-
-const char *output_format = "%s_HS_%s_CR%.2f_F%.2f_LSS%.2f_RW%.2f";
+#include <libgen.h>
 
 const char *argp_program_version = "DEMaxSAT solver v0.1";
 const char *argp_program_bug_address = "m.framil.deamorin@udc.es";
@@ -44,13 +40,20 @@ static struct argp_option options[] = {
         { "f", 'f',"F",0, "Mutation probability. Default=0.6f"},
         { "lss", 'l',"LSS",0, "Number of Local Search Steps. "
                               "Is a percentage of the number of variables. Default=0.01"},
-        { "maxlss", 'm',"maxLSS",0, "Max number of LSS on each call to local heuristics."
+        { "maxlss", 'm',"maxLSS",0, "Max number of LSS on each call to local heuristics. No limit=-1."
                                     "Default=100"},
         { "seed", 's',"SEED",0, "Random numbers seed. Randomly chosen = -1. Default=-1"},
         { "rw", 'r',"RW",0, "RandomWalk probability. GSAT prob=(1-RW). Default=0.5f"},
         { "hscope", 'h',"H_SCOPE",0, "Individuals affected by the Local Search "
-                                     "heuristics [all|better_than_mean]. Default=all"},
+                                     "heuristics [all|better_than_mean|best]. Default=all"},
         { 0 }
+};
+
+static int n_valid = 3;
+static char* valid_hscope[] =  {
+        "all",
+        "better_than_mean",
+        "best"
 };
 
 struct arguments {
@@ -59,6 +62,14 @@ struct arguments {
     float cr, f, rw, lss;
     char *hscope;
 };
+
+int validate_hscope(char *arg){
+    for (int i = 0; i < n_valid; i++){
+        if (strcmp(valid_hscope[i], arg) == 0)
+            return 1;
+    }
+    return 0;
+}
 
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
     struct arguments *arguments = state->input;
@@ -88,7 +99,12 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
             arguments->rw = atof(arg);
             break;
         case 'h':
-            arguments->hscope = arg;
+            if (validate_hscope(arg)){
+                arguments->hscope = arg;
+            }else{
+                printf("c WARNING: %s is not a valid HSCOPE. Using hscope=all.\n", arg);
+                return 0;
+            }
             break;
         case ARGP_KEY_ARG:
             if (state->arg_num >= 1)
@@ -144,9 +160,10 @@ int main(int argc,char **argv){
     arguments.hscope = "all";
 
     argp_parse(&argp, argc, argv, 0, 0, &arguments);
-    printf("%s\n", arguments.wcnf[0]);
+    //printf("%s\n", arguments.wcnf[0]);
     char path[512];
     strcpy(path, arguments.wcnf[0]);
+
     if (is_regular_file(path)){
         CNF *cnf;
         FILE *input;
@@ -154,11 +171,22 @@ int main(int argc,char **argv){
             printf("Error opening file %s\n",path);
             exit(1);
         }
+
+        char buff[20];
+        time_t now = time(NULL);
+        strftime(buff, 20, "_%d.%m.%y_%H.%M.%S", localtime(&now));
+
+        char outfile[512];
+        strcpy(outfile, path);
+        strcat(outfile, buff);
+        strcat(outfile,"_gens.log");
+        printf("%s\n",outfile);
+
         cnf = read_file(input);
         print_description(cnf, arguments);
         differential_evolution(cnf, arguments.gens, arguments.pop, arguments.cr, arguments.f,
                                arguments.lss, arguments.rw, arguments.maxlss, arguments.seed,
-                               arguments.hscope);
+                               arguments.hscope, outfile);
         fclose(input);
         free_CNF(cnf);
     }

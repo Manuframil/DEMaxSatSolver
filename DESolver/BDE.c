@@ -25,6 +25,7 @@
 #include "individual.c"
 #include "sigterm_handler.c"
 
+
 /**
  * Picks a random unsatisfied clause from a given individual.
  *
@@ -150,8 +151,8 @@ void evaluate(CNF *cnf, Individual **ind){
         for (j = 0; j < cnf->clauses[i]->size; j++){
             v = cnf->clauses[i]->literals[j];
             if (!v) continue;
-            var =  (v < 0) ? !GetBit((*ind)->assigment, pos) : GetBit((*ind)->assigment, pos);
             pos = abs(v) - 1;
+            var =  (v < 0) ? !GetBit((*ind)->assigment, pos) : GetBit((*ind)->assigment, pos);
             sat_val |= var;
             if (var) n_soportes++;
         }
@@ -164,7 +165,7 @@ void evaluate(CNF *cnf, Individual **ind){
         if (cnf->clauses[i]->is_hard){
             (*ind)->hard_unsat += !sat_val;
         }
-        newScore += (int) (!sat_val * cnf->clauses[i]->weight);
+        newScore += sat_val ? 0 : (int) cnf->clauses[i]->weight;
     }
     (*ind)->score = newScore;
 }
@@ -207,14 +208,15 @@ void local_search_step(CNF *cnf, Individual *ind, int ls_steps, float RW){
  * @param population_mean_score Mean score of the population
  * @return True if the ind is affected, False otherwise
  */
-int inHeuristicScope(const char* heuristic_scope, Individual *ind, float population_mean_score){
+int inHeuristicScope(const char* heuristic_scope, Individual *ind, int i, float population_mean_score, int best_individual){
     if (strcmp(heuristic_scope, "all") == 0)
         return 1;
-    if ((strcmp(heuristic_scope, "better_than_mean") == 0) && ((float) ind->score > population_mean_score))
+    if ((strcmp(heuristic_scope, "better_than_mean") == 0) && ((float) ind->score < population_mean_score))
+        return 1;
+    if ((strcmp(heuristic_scope, "best") == 0) && (i == best_individual))
         return 1;
     return 0;
 }
-
 
 /**
  * Implements the main algorithm: Binary Difference Evolution w/ GSAT-RW
@@ -231,9 +233,12 @@ int inHeuristicScope(const char* heuristic_scope, Individual *ind, float populat
  * @param SEED
  * @param hscope
  */
-void differential_evolution(CNF *cnf, int gen_max, int pop, float CR, float F, float LSS, float RW, int maxLSS, int SEED, const char* hscope){
+void differential_evolution(CNF *cnf, int gen_max, int pop, float CR, float F, float LSS, float RW, int maxLSS, int SEED, const char* hscope, const char*outfile){
 
     catch_sigterm();
+
+    FILE *f;
+    f = fopen(outfile,"w");
 
     sigtermMsg.assigment_size = (int) cnf->variable_count;
     sigtermMsg.assigment = calloc(ceil(cnf->variable_count/BitsInt)+1, sizeof(int));
@@ -251,8 +256,9 @@ void differential_evolution(CNF *cnf, int gen_max, int pop, float CR, float F, f
     float media_poblacion;
     int best_satisfie_hards;
     int count = 0;
-    int npush = fmin((int) ceil(cnf->variable_count * LSS), maxLSS);
-    int a = 0, b = 0, c = 0;
+    int raw_pushes = (int) ceil(cnf->variable_count * LSS);
+    int npush = (maxLSS == -1) ? raw_pushes : fmin(raw_pushes, maxLSS);
+    int a = 0, b = 0, c = 0, best_ind;
     if (SEED == -1) srand(time(0));
     else srand(SEED);
 
@@ -265,6 +271,7 @@ void differential_evolution(CNF *cnf, int gen_max, int pop, float CR, float F, f
         acc += inds[i]->score;
         if (inds[i]->score < mejor_score){
             mejor_score = inds[i]->score;
+            best_ind = i;
             best_satisfie_hards = satisfie_all_hard(inds[i]);
         }
     }
@@ -287,7 +294,7 @@ void differential_evolution(CNF *cnf, int gen_max, int pop, float CR, float F, f
             * improvement is determined by the heuristic
             * scope (hscope) parameter.
             */
-            if (inHeuristicScope(hscope, inds[i], media_poblacion)){
+            if (inHeuristicScope(hscope, inds[i], i, media_poblacion, best_ind)){
                 local_search_step(cnf, inds[i], npush, RW);
             }
             /********** Mutate/recombine **********/
@@ -323,10 +330,12 @@ void differential_evolution(CNF *cnf, int gen_max, int pop, float CR, float F, f
             }
             free_individual(&indTmp);
             acc += inds[i]->score;
-            if (inds[i]->score < mejor_score){
+
+            if (inds[i]->score < mejor_score && satisfie_all_hard(inds[i])){
                 mejor_score = inds[i]->score;
+                best_ind = i;
                 copy_assigment(&inds[i]->assigment, &mejor_assigment, inds[i]->assigment_size);
-                best_satisfie_hards = satisfie_all_hard(inds[i]);
+                best_satisfie_hards = 1;
             }
         }
 
@@ -334,17 +343,16 @@ void differential_evolution(CNF *cnf, int gen_max, int pop, float CR, float F, f
         memset(mutant, 0, (int) ceilf((float) D/BitsInt)+1);
 
         /********** End of population loop; swap arrays **********/
-
         media_poblacion = acc/(float) NP;
-
-        if (mejor_score < mejor_score_overall) {
+        if (mejor_score < mejor_score_overall && best_satisfie_hards) {
             mejor_score_overall = mejor_score;
             copy_assigment(&mejor_assigment, &sigtermMsg.assigment, sigtermMsg.assigment_size);
             sigtermMsg.sol = (int) mejor_score;
             sigtermMsg.satisfie_hard = best_satisfie_hards;
-            if (best_satisfie_hards)
-                printf("o %d\n", mejor_score);
+            printf("o %d\n", mejor_score);
         }
+        fprintf(f,"%d,%d,%f\n",count, mejor_score_overall, media_poblacion);
+
         count++;
     }
 
@@ -354,9 +362,10 @@ void differential_evolution(CNF *cnf, int gen_max, int pop, float CR, float F, f
         free_individual(&inds[i]);
     }
     /************************* FREES *************************/
-    //fclose(fp);
     free(inds);
     free(mutant);
     free(mejor_assigment);
     free(sigtermMsg.assigment);
+    fclose(f);
+
 }

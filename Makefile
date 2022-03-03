@@ -1,4 +1,4 @@
-MAIN = ../bin/demaxsat
+MAIN = demaxsat
 
 all: compile
 

@@ -1,6 +1,3 @@
 .idea/
-data/
-venv/
-*.sh
-Graphics/
-imgs/
+examples/
+demaxsat

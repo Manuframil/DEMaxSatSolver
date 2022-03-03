@@ -1,5 +1,0 @@
-#!/bin/bash
-cpu=60
-gunzip -c $1 > maxsat.wcnf
-timeout -s 15 $cpu ./demaxsat maxsat.wcnf
-rm -f maxsat.wcnf
