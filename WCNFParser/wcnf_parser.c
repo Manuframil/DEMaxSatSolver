@@ -52,43 +52,56 @@ static bool read_c_line(FILE *file) {
 static bool read_clauses(FILE *file, CNF *cnf) {
     assert(file);
     bool isWeigth = true;
+    bool isHard = false;
     if (!cnf) 
         return false;
     size_t const variable_count = cnf->variable_count;
     //for (Clause **clause_ptr = &cnf->clauses[0]; clause_ptr < &cnf->clauses[(int)cnf->clause_count];) {
-    for (int i = 0; i < cnf->clause_count;) {
+    int n_soft = 0;
+    int n_hard = 0;
+    for (; n_soft + n_hard < cnf->clause_count;) {
         //Clause *clause_ptr = cnf->clauses[i];
         int literal;
         int match_count = fscanf(file, "%d", &literal);
         if (match_count != 1) 
             return false;
         if (isWeigth){
-            cnf->clauses[i] = new_clause(literal, IS_HARD(literal, cnf->top));
-            cnf->max_cost += literal;
+            if (IS_HARD(literal, cnf->top)){
+                isHard = true;
+                cnf->hard[n_hard] = new_hard_clause();
+            } else {
+                isHard = false;
+                cnf->soft[n_soft] = new_soft_clause(literal);
+                cnf->max_cost += literal;
+            }
             isWeigth = false;
             continue;
         }
         if (literal == 0) {
-            if (!cnf->clauses[i]) 
-                return false; // We disallow empty clauses.
-            //clause_ptr++;
-            i++;
+            //if (!cnf->clauses[i]) 
+            //    return false; // We disallow empty clauses.
+            isHard ? n_hard++ : n_soft++;
             isWeigth = true; // El siguiente numero será el peso de la clausula
-        }
-        else{
+        }else{
             if (abs(literal) <= variable_count) {
-                if (!clause_pushback_literal(&cnf->clauses[i], literal)){
-                    return false;
+                if (isHard){
+                    if (!hard_clause_pushback_literal(&cnf->hard[n_hard], literal)){
+                        return false;
+                    }
+                } else {
+                    if (!soft_clause_pushback_literal(&cnf->soft[n_soft], literal)){
+                        return false;
+                    }
                 }
                 int pos = abs(literal) - 1;
-                if (!entry_pushback_clause(&cnf->entries[pos], i))
+                if (!entry_pushback_clause(&cnf->entries[pos], n_hard+n_soft))
                     return false;
             } else 
                 return false;
-            
-
         } 
     }
+    cnf->soft_count = n_soft;
+    cnf->hard_count = n_hard;
     return true;
 }
 

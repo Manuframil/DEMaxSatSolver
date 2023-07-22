@@ -19,12 +19,13 @@
 #include <stdint.h>
 #include <assert.h>
 #include <stdlib.h>
-#include "Clause.c"
+#include "HardClause.c"
+#include "SoftClause.c"
 #include "Entry.c"
 
 
 static inline size_t CNF_max_clause_count() {
-  return (SIZE_MAX-sizeof(CNF))/sizeof(Clause*);
+  return (SIZE_MAX-sizeof(CNF))/sizeof(SoftClause*);
 }
 
 static inline size_t CNF_max_variable_count() {
@@ -36,7 +37,7 @@ static size_t CNF_size_for(size_t const clause_count, size_t const variable_coun
         return 0;
     if (variable_count >= CNF_max_variable_count())
         return 0;
-    return sizeof(CNF) + clause_count * sizeof(Clause*) + variable_count * sizeof(Entry*);
+    return sizeof(CNF) + clause_count * sizeof(SoftClause*) + variable_count * sizeof(Entry*);
 }
 
 static CNF *new_CNF(size_t variable_count, size_t clause_count, size_t top) {
@@ -49,8 +50,11 @@ static CNF *new_CNF(size_t variable_count, size_t clause_count, size_t top) {
     cnf->clause_count = clause_count;
     cnf->top = top;
     cnf->max_cost = 0;
+    cnf->soft_count = 0;
+    cnf->hard_count = 0;
     cnf->entries = calloc(variable_count, sizeof(Entry));
-    cnf->clauses = calloc(clause_count, sizeof(Clause));
+    cnf->soft = calloc(clause_count, sizeof(SoftClause));
+    cnf->hard = calloc(clause_count, sizeof(HardClause));
 
     for (int i = 0; i < variable_count; i++)
         cnf->entries[i] = new_entry();
@@ -60,14 +64,17 @@ static CNF *new_CNF(size_t variable_count, size_t clause_count, size_t top) {
 static void free_CNF(CNF *cnf) {
     if (!cnf) 
         return;
-    for (int i=0; i < cnf->clause_count; i++){
-        free_clause(cnf->clauses[i]);
+    for (int i=0; i < cnf->soft_count; i++){
+        free_soft_clause(cnf->soft[i]);
     }
-    free(cnf->clauses);
+    free(cnf->soft);
+    for (int i=0; i < cnf->hard_count; i++){
+        free_hard_clause(cnf->hard[i]);
+    }
+    free(cnf->hard);
     for (int i=0; i < cnf->variable_count; i++){
         free_entry(cnf->entries[i]);
     }
     free(cnf->entries);
-
     free(cnf);
 }
